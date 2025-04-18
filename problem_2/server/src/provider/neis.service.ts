@@ -38,7 +38,7 @@ export class NeisService {
       return null;
     }
 
-    const { ATPT_OFCDC_SC_CODE, SD_SCHUL_CODE } = school;
+    const { ATPT_OFCDC_SC_CODE, SD_SCHUL_CODE, SCHUL_NM } = school;
 
     const response = await fetch(
       `${this.apiUrl}/mealServiceDietInfo?KEY=${this.apiKey}&Type=json&pIndex=1&pSize=1000` +
@@ -52,13 +52,15 @@ export class NeisService {
       return [];
     }
 
-    return {
-      date,
-      schoolName: school.SCHUL_NM,
-      meals: data.mealServiceDietInfo[1].row.map((meal) =>
-        this.convertMeal(meal),
-      ),
-    };
+    return [
+      {
+        date,
+        schoolName: SCHUL_NM,
+        meals: data.mealServiceDietInfo[1].row.map((meal) =>
+          this.convertMeal(meal),
+        ),
+      },
+    ];
   }
 
   async findMealsByMonth({

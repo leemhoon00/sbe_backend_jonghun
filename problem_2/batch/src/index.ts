@@ -7,48 +7,70 @@ const prisma = new PrismaClient();
 
 const key = process.env.API_KEY;
 
-const url = 'https://open.neis.go.kr/hub/schoolInfo';
+const url = 'https://open.neis.go.kr/hub';
 
 async function getSchoolInfo(index: number = 1, size: number = 100) {
   const response = await fetch(
-    `${url}?KEY=${key}&type=json&pIndex=${index}&pSize=${size}`
+    `${url}/schoolInfo?KEY=${key}&type=json&pIndex=${index}&pSize=${size}`
   );
   const data = (await response.json()) as SchoolsResponse;
   return data.schoolInfo[1].row;
 }
 
 async function getSchoolCount() {
-  const response = await fetch(`${url}?KEY=${key}&type=json&pIndex=1&pSize=1`);
+  const response = await fetch(
+    `${url}/schoolInfo?KEY=${key}&type=json&pIndex=1&pSize=1`
+  );
   const data = (await response.json()) as SchoolsResponse;
   return data.schoolInfo[0].head[0].list_total_count;
 }
 
+async function getMealInfo({
+  index,
+  size,
+  cityCode,
+  schoolCode,
+}: {
+  index: number;
+  size: number;
+  cityCode: string;
+  schoolCode: string;
+}) {
+  const response = await fetch(
+    `${url}/mealServiceDietInfo?KEY=${key}&type=json&pIndex=${index}&pSize=${size}&ATPT_OFCDC_SC_CODE=${cityCode}&SD_SCHUL_CODE=${schoolCode}&MLSV_YMD=20250418`
+  );
+  const data = await response.json();
+  console.dir(data, { depth: null });
+}
+
 async function main() {
-  const totalCount = await getSchoolCount();
+  // const totalCount = await getSchoolCount();
+  // await prisma.school.deleteMany({});
+  // for (let i = 1; i <= Math.ceil(totalCount / 1000); i++) {
+  //   const schools = await getSchoolInfo(i, 1000);
+  //   const convertedSchools = [];
+  //   for (const school of schools) {
+  //     if (!school.SD_SCHUL_CODE.trim()) {
+  //       continue;
+  //     }
+  //     convertedSchools.push({
+  //       cityCode: school.ATPT_OFCDC_SC_CODE,
+  //       code: school.SD_SCHUL_CODE,
+  //       name: school.SCHUL_NM,
+  //     });
+  //   }
+  //   await prisma.school.createMany({
+  //     data: convertedSchools,
+  //     skipDuplicates: true,
+  //   });
+  // }
 
-  await prisma.school.deleteMany({});
-
-  for (let i = 1; i <= Math.ceil(totalCount / 1000); i++) {
-    const schools = await getSchoolInfo(i, 1000);
-
-    const convertedSchools = [];
-
-    for (const school of schools) {
-      if (!school.SD_SCHUL_CODE.trim()) {
-        continue;
-      }
-      convertedSchools.push({
-        cityCode: school.ATPT_OFCDC_SC_CODE,
-        code: school.SD_SCHUL_CODE,
-        name: school.SCHUL_NM,
-      });
-    }
-
-    await prisma.school.createMany({
-      data: convertedSchools,
-      skipDuplicates: true,
-    });
-  }
+  const data = await getMealInfo({
+    index: 1,
+    size: 1,
+    cityCode: 'B10',
+    schoolCode: '7010698',
+  });
 }
 
 main()

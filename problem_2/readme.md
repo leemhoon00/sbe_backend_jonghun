@@ -48,4 +48,8 @@ npm run start:dev
 - 학교명은 필수이며 최소 2글자, 날짜는 `YYYY-MM-DD` 또는 `YYYY-MM` 형식이거나 없으면 기본값으로 오늘 날짜가 사용됩니다.
 
 <br />
+
 ### 실행 결과
+
+![image](https://github.com/user-attachments/assets/addfac52-e8e1-43aa-b7ee-cd5ee510e716)
+

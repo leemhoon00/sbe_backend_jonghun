@@ -12,7 +12,8 @@ export class MealService {
     schoolName: string;
     date: string;
   }) {
-    if (date.length === 8)
+    if (date.length === 10)
       return await this.neisService.findMealsByDate({ schoolName, date });
+    return await this.neisService.findMealsByMonth({ schoolName, date });
   }
 }

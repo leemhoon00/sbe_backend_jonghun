@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DateUtil } from 'src/common/util/date.util';
 
 @Injectable()
 export class NeisService {
@@ -43,7 +44,7 @@ export class NeisService {
       `${this.apiUrl}/mealServiceDietInfo?KEY=${this.apiKey}&Type=json&pIndex=1&pSize=1000` +
         `&ATPT_OFCDC_SC_CODE=${ATPT_OFCDC_SC_CODE}` +
         `&SD_SCHUL_CODE=${SD_SCHUL_CODE}` +
-        `&MLSV_YMD=${date}`,
+        `&MLSV_YMD=${date.replaceAll('-', '')}`,
     );
 
     const data = (await response.json()) as NeisMealsResponse | FailResponse;
@@ -51,15 +52,81 @@ export class NeisService {
       return [];
     }
 
-    return data.mealServiceDietInfo[1].row.map((meal) => ({
-      schoolName: meal.SCHUL_NM,
+    return {
+      date,
+      schoolName: school.SCHUL_NM,
+      meals: data.mealServiceDietInfo[1].row.map((meal) =>
+        this.convertMeal(meal),
+      ),
+    };
+  }
+
+  async findMealsByMonth({
+    schoolName,
+    date,
+  }: {
+    schoolName: string;
+    date: string;
+  }) {
+    const school = await this.getSchoolInfo(schoolName);
+
+    if (!school) {
+      return null;
+    }
+
+    const { ATPT_OFCDC_SC_CODE, SD_SCHUL_CODE, SCHUL_NM } = school;
+
+    const response = await fetch(
+      `${this.apiUrl}/mealServiceDietInfo?KEY=${this.apiKey}&Type=json&pIndex=1&pSize=1000` +
+        `&ATPT_OFCDC_SC_CODE=${ATPT_OFCDC_SC_CODE}` +
+        `&SD_SCHUL_CODE=${SD_SCHUL_CODE}` +
+        `&MLSV_FROM_YMD=${date.replaceAll('-', '')}01` +
+        `&MLSV_TO_YMD=${DateUtil.getLastDateOfMonth(date)}`,
+    );
+
+    const data = (await response.json()) as NeisMealsResponse | FailResponse;
+
+    if ('RESULT' in data) return [];
+
+    const map = new Map<string, Meal[]>();
+    data.mealServiceDietInfo[1].row.forEach((meal) => {
+      const date =
+        meal.MLSV_YMD.substring(0, 4) +
+        '-' +
+        meal.MLSV_YMD.substring(4, 6) +
+        '-' +
+        meal.MLSV_YMD.substring(6, 8);
+      if (!map.has(date)) {
+        map.set(date, []);
+      }
+
+      map.get(date)?.push(this.convertMeal(meal));
+    });
+
+    const result: {
+      date: string;
+      schoolName: string;
+      meals: Meal[];
+    }[] = [];
+
+    map.forEach((value, key) => {
+      result.push({
+        date: key,
+        schoolName: SCHUL_NM,
+        meals: value,
+      });
+    });
+    return result;
+  }
+
+  convertMeal(meal: NeisMealResponse): Meal {
+    return {
       mealType: meal.MMEAL_SC_NM,
-      date: meal.MLSV_YMD,
       menus: meal.DDISH_NM.split('<br/>').map((item) =>
         item.replace(/\([^)]*\)/g, '').trim(),
       ),
       calorie: Number(meal.CAL_INFO.split(' ')[0]),
-      nutrition: meal.NTR_INFO.split('<br/>').map((item) => {
+      nutritions: meal.NTR_INFO.split('<br/>').map((item) => {
         const match = item.match(/^(.+?)\(([^)]+)\)\s*:\s*([\d.]+)$/);
         return match
           ? {
@@ -67,11 +134,26 @@ export class NeisService {
               unit: match[2].trim(),
               quantity: Number(match[3]), // 함유량
             }
-          : [];
+          : {
+              name: '',
+              unit: '',
+              quantity: 0,
+            };
       }),
-    }));
+    };
   }
 }
+
+type Meal = {
+  mealType: string;
+  menus: string[];
+  calorie: number;
+  nutritions: {
+    name: string;
+    unit: string;
+    quantity: number;
+  }[];
+};
 
 type NeisSchoolResponse = {
   ATPT_OFCDC_SC_CODE: string; // 시도교육청 코드
@@ -106,6 +188,7 @@ type NeisMealResponse = {
   DDISH_NM: string; // 메뉴
   CAL_INFO: string; // 칼로리
   NTR_INFO: string; // 영양 정보
+  MMEAL_SC_CODE: string; // 중식 or 석식 코드
 };
 
 type NeisMealsResponse = {

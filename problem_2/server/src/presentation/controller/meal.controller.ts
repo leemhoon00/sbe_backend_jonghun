@@ -14,9 +14,7 @@ export class MealController {
   async getMealInfo(@Query() query: GetMealRequest) {
     return this.mealService.getMealInfo({
       schoolName: query.schoolName,
-      date:
-        query.date ??
-        new Date().toISOString().split('T')[0].replaceAll('-', ''),
+      date: query.date ?? new Date().toISOString().split('T')[0],
     });
   }
 }

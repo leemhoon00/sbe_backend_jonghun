@@ -14,6 +14,7 @@ export class NeisService {
     this.apiKey = key;
   }
 
+  // 학교 검색
   async getSchoolInfo(name: string) {
     const response = await fetch(
       `${this.apiUrl}/schoolInfo?KEY=${this.apiKey}&Type=json&pIndex=1&pSize=1&SCHUL_NM=${name}`,
@@ -90,6 +91,8 @@ export class NeisService {
 
     if ('RESULT' in data) return [];
 
+    // Map에 날짜를 키로, Meal[]을 값으로 저장하는 이유는 NEIS API의 기본 제공 데이터는 먼저 중식/석식으로 1차 정렬 후 날짜순으로 2차 정렬하여 반환합니다.
+    // 만약 프론트엔드에서 캘린더에 쓸 목적으로 이 api를 호출한다면 날짜별로 묶어서 반환해야 추가적인 데이터 정렬 없이 바로 사용가능합니다.
     const map = new Map<string, Meal[]>();
     data.mealServiceDietInfo[1].row.forEach((meal) => {
       const date =
@@ -98,6 +101,7 @@ export class NeisService {
         meal.MLSV_YMD.substring(4, 6) +
         '-' +
         meal.MLSV_YMD.substring(6, 8);
+
       if (!map.has(date)) {
         map.set(date, []);
       }

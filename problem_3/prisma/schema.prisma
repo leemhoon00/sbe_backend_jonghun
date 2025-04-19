@@ -1,0 +1,37 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String            @id @default(uuid()) @db.Uuid
+  DocumentProcess DocumentProcess[]
+
+  @@map("user")
+}
+
+model Document {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String
+  status    String // "processing", "approved", "rejected"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  DocumentProcess DocumentProcess[]
+
+  @@map("document")
+}
+
+model DocumentProcess {
+  id         String   @id @default(uuid()) @db.Uuid
+  managerId  String   @map("manager_id")
+  documentId String   @map("document_id")
+  step       Int // 1, 2, 3
+  status     String // "pending", "approved", "rejected"
+  comment    String?
+  updatedAt  DateTime @default(now()) @map("updated_at")
+
+  document Document @relation(fields: [documentId], references: [id])
+  manager  User     @relation(fields: [managerId], references: [id])
+
+  @@map("document_process")
+}

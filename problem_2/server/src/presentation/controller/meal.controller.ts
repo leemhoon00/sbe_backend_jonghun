@@ -12,6 +12,7 @@ export class MealController {
 
   @ApiOperation({ summary: '급식 정보 조회' })
   @ApiResponse({ status: 200, type: [MealResponse] })
+  @ApiResponse({ status: 404, description: '학교를 찾을 수 없음' })
   @Get()
   async getMealInfo(@Query() query: GetMealRequest): Promise<MealResponse[]> {
     return this.mealService.getMealInfo({
